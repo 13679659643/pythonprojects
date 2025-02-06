@@ -1,0 +1,36 @@
+image: docker:latest
+
+variables:
+  DOCKER_HOST: tcp://192.168.0.201:2375
+  DOCKER_DRIVER: overlay2
+  DEPLOY_BASE_PATH: "/data/Doocn/ODS/"
+  REMOTE_IMAGE_NAME: "domestic-multi-channel-data"
+  GIT_STRATEGY: fetch
+
+stages:
+  - deploy
+
+deploy_production:
+  stage: deploy
+  only:
+    - main
+  tags:
+    - deploy
+  before_script:
+    - 'which ssh-agent || ( apk update && apk add openssh-client )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - echo "DEPLOY_BASE_PATH=$DEPLOY_BASE_PATH"
+    - echo "REMOTE_IMAGE_NAME=$REMOTE_IMAGE_NAME"
+    - ssh 192.168.0.201 "echo 'Hello from remote machine!'"
+    - ssh 192.168.0.201 "rm -rf ${DEPLOY_BASE_PATH}${REMOTE_IMAGE_NAME}"
+    - ssh 192.168.0.201 "mkdir -p ${DEPLOY_BASE_PATH}${REMOTE_IMAGE_NAME}"
+    - scp -r ./* 192.168.0.201:${DEPLOY_BASE_PATH}${REMOTE_IMAGE_NAME}
+    - ssh 192.168.0.201 "cd ${DEPLOY_BASE_PATH}${REMOTE_IMAGE_NAME} && docker-compose up -d"
+    - ssh 192.168.0.201 "docker images ${REMOTE_IMAGE_NAME} --format '{{.Tag}}' | grep -v ${CURRENT_VERSION} | xargs -I {} docker rmi ${REMOTE_IMAGE_NAME}:{}"
+

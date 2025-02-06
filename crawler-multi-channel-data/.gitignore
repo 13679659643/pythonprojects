@@ -1,0 +1,5 @@
+.idea/*
+__pycache__/*
+*/__pycache__/*
+local_test.py
+test1.py

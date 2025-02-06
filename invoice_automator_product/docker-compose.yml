@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  invoice_automator_product:
+    image: invoice_automator_product:v1.0.0
+    container_name: invoice_automator_product
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8120:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app
+

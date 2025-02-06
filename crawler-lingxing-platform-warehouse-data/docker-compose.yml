@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  crawler-lingxing-finance-data:
+    image: crawler-lingxing-platform-warehouse-data:v1.1.0
+    container_name: crawler-lingxing-platform-warehouse-data
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8110:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

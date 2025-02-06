@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  crawler-lingxing-fba-shipmens:
+    image: crawler-lingxing-fba-shipmens:v1.0.1
+    container_name: crawler-lingxing-fba-shipmens
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8610:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

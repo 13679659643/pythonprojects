@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  crawler-logistics-provider-data:
+    image: crawler-logistics-provider-data:v1.1.1
+    container_name: crawler-logistics-provider-data
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8401:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

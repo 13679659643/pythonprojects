@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  crawler-lingxing-customer-data:
+    image: crawler-lingxing-customer-data:v1.0.7
+    container_name: crawler-lingxing-customer-data
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8140:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

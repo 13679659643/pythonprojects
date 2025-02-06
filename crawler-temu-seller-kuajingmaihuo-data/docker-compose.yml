@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  crawler-temu-seller-kuajingmaihuo-data:
+    image: crawler-temu-seller-kuajingmaihuo-data:v1.0.1
+    container_name: crawler-temu-seller-kuajingmaihuo-data
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8181:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app
+

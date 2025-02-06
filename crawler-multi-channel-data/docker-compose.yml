@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  domestic-multi-channel-data:
+    image: domestic-multi-channel-data:v1.0.4
+    container_name: domestic-multi-channel-data
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8131:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app
+
