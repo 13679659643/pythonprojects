@@ -576,7 +576,7 @@ class BaseCrawlerView:
                 break
 
         for status in status_list:
-            if "已派送目的地" in status or "DELIVERED" in status:
+            if "已派送目的地" in status or "DELIVERED" in status or "Delivered" in status:
                 status_index = status_list.index(status)
                 receipt_date = status_list[status_index - 1] if status_index > 0 else None
                 if receipt_date is not None:
@@ -749,6 +749,16 @@ class BaseCrawlerView:
 
         for status in status_list:
             if "签收" in status or "已递送" in status or "已送仓" in status or "已交仓" in status:
+                date_pattern_ymd = re.compile(r'\d{1,4}[./-]\d{1,2}[./-]\d{1,2}')
+                # 匹配年/月/日格式的日期，如果没有找到匹配项，那么 search() 会返回 None。
+                # year = str(int(year) + 1)  # 年份加1
+                match = re.search(date_pattern_ymd, status)
+                if match:
+                    # logging.INFO(f"年/月/日格式的跨年日期: {id}")
+                    date = match.group()
+                    date_object = date.replace(".", "-").replace("/", "-")
+                    receipt_date = date_object
+                    break
                 status_index = status_list.index(status)
                 status_date = status_list[status_index - 1] if status_index > 0 else None
                 # 将这个字符串解析为一个datetime对象
@@ -761,7 +771,7 @@ class BaseCrawlerView:
                 else:
                     receipt_date = status_list[status_index - 1] if status_index > 0 else None
                     break
-            elif "DELIVERED" in status:
+            elif "DELIVERED" in status or "Delivered" in status:
                 status_index = status_list.index(status)
                 receipt_date = status_list[status_index - 1] if status_index > 0 else None
                 break

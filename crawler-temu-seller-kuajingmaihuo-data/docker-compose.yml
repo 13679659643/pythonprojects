@@ -2,7 +2,7 @@ version: '3'
 
 services:
   crawler-temu-seller-kuajingmaihuo-data:
-    image: crawler-temu-seller-kuajingmaihuo-data:v1.0.1
+    image: crawler-temu-seller-kuajingmaihuo-data:v1.0.3
     container_name: crawler-temu-seller-kuajingmaihuo-data
     network_mode: bridge
     build:

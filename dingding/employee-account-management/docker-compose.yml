@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  employee-account-management:
+    image: employee-account-management:v1.1.2
+    container_name: employee-account-management
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8313:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

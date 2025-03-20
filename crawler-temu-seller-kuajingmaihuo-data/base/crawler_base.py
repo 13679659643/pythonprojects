@@ -52,12 +52,28 @@ class CrawlerBase:
         # 获取当前日期时间 :
         now = datetime.now()
         # 计算一个月前的日期
-        one_month_ago = now - timedelta(days=31)
+        one_month_ago = now - timedelta(days=61)
         # 转换为字符串
         one_month_ago_str = one_month_ago.strftime('%Y%m%d')
         table_ob = self.mongo_ob.load_table_ob(db_name, table_name)
         filter_origin_data = table_ob.find({"dt": {"$gte": one_month_ago_str}})
         return filter_origin_data, table_ob.count_documents({"dt": {"$gte": one_month_ago_str}})
+
+    def delete_mongodb_one_month(self, table_name):
+        """
+        从mongo删除 20250123~20241223所有 Python 对象
+        传入表名，数据库名固定
+        :return:删除的文档数量
+        """
+        # 获取当前日期时间 :
+        now = datetime.now()
+        # 计算一个月前的日期
+        one_month_ago = now - timedelta(days=61)
+        # 转换为字符串
+        one_month_ago_str = one_month_ago.strftime('%Y%m%d')
+        table_ob = self.mongo_ob.load_table_ob(db_name, table_name)
+        delete_result = table_ob.delete_many({"dt": {"$gte": one_month_ago_str}})
+        return delete_result.deleted_count
 
     def save_to_tidb(self, db_table, field_list, data_list):
         """
@@ -131,7 +147,7 @@ class CrawlerBase:
         anti_content = _.stdout.strip()
         return anti_content
 
-    def get_code(self, pass_cookie_dict):
+    def get_code(self, pass_cookie_dict, domain_url):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Content-Type': 'application/json',
@@ -150,7 +166,7 @@ class CrawlerBase:
         }
 
         json_data = {
-            'redirectUrl': 'https://agentseller.temu.com/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html',
+            'redirectUrl': f'{domain_url}/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html',
         }
 
         response = requests.post(
@@ -161,7 +177,7 @@ class CrawlerBase:
         )
         return response.json()['result']['code']
 
-    def loginByCode(self, code):
+    def loginByCode(self, code, domain_url):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Content-Type': 'application/json',
@@ -172,11 +188,11 @@ class CrawlerBase:
             'mallid': 'undefined',
             'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
             'sec-ch-ua-mobile': '?0',
-            'origin': 'https://agentseller.temu.com',
+            # 'origin': 'https://agentseller.temu.com',
             'sec-fetch-site': 'same-origin',
             'sec-fetch-mode': 'cors',
             'sec-fetch-dest': 'empty',
-            'referer': 'https://agentseller.temu.com/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html',
+            # 'referer': 'https://agentseller.temu.com/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html',
             'accept-language': 'zh-CN,zh;q=0.9',
             'priority': 'u=1, i',
         }
@@ -187,7 +203,7 @@ class CrawlerBase:
         }
 
         response = requests.post(
-            'https://agentseller.temu.com/api/seller/auth/loginByCode',
+            f'{domain_url}/api/seller/auth/loginByCode',
             # cookies=cookies,
             headers=headers,
             json=json_data,
@@ -251,7 +267,7 @@ class CrawlerBase:
 
 class RetryDecorator:
     @classmethod
-    def retry_decorator(cls, msg=None, error_type=None, max_retry_count: int = 4, time_interval: int = 2):
+    def retry_decorator(cls, msg=None, error_type=None, max_retry_count: int = 4, time_interval: int = 3):
         """
         任务重试装饰器
         msg:错误信息

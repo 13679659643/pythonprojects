@@ -39,64 +39,73 @@ class MongoTidbTransfer(CrawlerBase):
         temu-跨境卖家中心-商品管理-商品列表主要数据清洗
         :return:处理好的、用于插入数据库的数据
         """
-        product_list = []
-        data_list = self.get_mongodb_table(table_name)
-        for data in data_list:
-            new_data = {
-                'productId': data['productId'],  # 'SPU ID'
-                'productSkcId': data['productSkcId'],  # 'SKC ID'
-                'productName': data['productName'],  # '商品名称'
-                'extCode': data['extCode'],  # '货号'
-                'catName': data['leafCat']['catName'],  # '类目'
-                'leafCat': self.get_category_string(data['categories']),  # '类目结构'
-                'mainImageUrl': data['mainImageUrl'],  # '图片'
-                'siteName': data['productSemiManaged']['bindSites'][0]['siteName'],  # '经营站点'
-                'productProperties': json.dumps(data['productProperties']),  # '商品属性'
-                'sizeTemplateIds': data['sizeTemplateIds'],  # '尺码表
-                'instructioninfo': None,  # '说明书信息'
-                'createdAt': CrawlerBase().timestr(data['createdAt']),  # '创建时间'
-            }
-            product_list.append(new_data)
-        return product_list
+        try:
+            product_list = []
+            data_list = self.get_mongodb_table(table_name)
+            for data in data_list:
+                new_data = {
+                    'productId': data['productId'],  # 'SPU ID'
+                    'productSkcId': data['productSkcId'],  # 'SKC ID'
+                    'productName': data['productName'],  # '商品名称'
+                    'extCode': data['extCode'],  # '货号'
+                    'catName': data['leafCat']['catName'],  # '类目'
+                    'leafCat': self.get_category_string(data['categories']),  # '类目结构'
+                    'mainImageUrl': data['mainImageUrl'],  # '图片'
+                    'siteName': data['productSemiManaged']['bindSites'][0]['siteName'],  # '经营站点'
+                    'productProperties': json.dumps(data['productProperties']),  # '商品属性'
+                    'sizeTemplateIds': data['sizeTemplateIds'],  # '尺码表
+                    'instructioninfo': None,  # '说明书信息'
+                    'createdAt': CrawlerBase().timestr(data['createdAt']),  # '创建时间'
+                }
+                product_list.append(new_data)
+            return product_list
+        except Exception as e:
+            print(e)
+            pass
+
 
     def etl_Details_data(self):
         """
         temu-跨境卖家中心-商品管理-商品列表明细数据清洗
         :return:处理好的、用于插入数据库的数据
         """
-        product_details_list = []
-        data_list = self.get_mongodb_table(table_name)
-        for data in data_list:
-            productId = data['productId']
-            productSkcId = data['productSkcId']
-            warehouseRegion1List = data['productSemiManaged']['productShipment']['freightTemplate']['warehouseRegion1List']
-            if warehouseRegion1List:
-                chineseName = warehouseRegion1List[0]['chineseName']
-            else:
-                chineseName = None
-            for item in data['productSkuSummaries']:
-                new_data = {
-                    'productId': productId,  # 'SPU ID'
-                    'productSkcId': productSkcId,  # 'SKC ID'
-                    'productSkuId': item['productSkuId'],  # 'SKU ID'
-                    'productSkuSpecList': json.dumps(item['productSkuSpecList']),  # '商品规格'
-                    'productSkuShippingMode': item['productSkuSaleExtAttr']['productSkuShippingMode'],
-                    # '发货模式(1:卖家自发货,2：合作对接仓发货)'
-                    'skuStockQuantity': item['productSkuSemiManagedStock']['skuStockQuantity'],  # '库存'
-                    'existShippingShelfRoute': item['productSkuSemiManagedStock']['existShippingShelfRoute'],
-                    # '是否展示库存标(true默认:展示)'
-                    'chineseName': chineseName,  # '运费模版发货地'
-                    'numberOfPieces': '单品数量：' + str(item['productSkuMultiPack']['numberOfPieces']) + '件',
-                    # 'SKU分类(默认:单品数量：1件)'
-                    'supplierPrice': item['siteSupplierPrices'][0]['supplierPrice'] / 100,  # '申报价格(CNY)'
-                    'productSkuVolume': json.dumps(item['productSkuWhExtAttr']['productSkuVolume']),  # '体积
-                    'productSkuWeight': json.dumps(item['productSkuWhExtAttr']['productSkuWeight']),  # '重量'
-                    'extCode': item['extCode'],  # 'SKU货号'
-                    'currencyType': item['currencyType'],  # 'currencyType'
-                    'thumbUrl': item['thumbUrl'],  # 'thumbUrl'
-                }
-                product_details_list.append(new_data)
-        return product_details_list
+        try:
+            product_details_list = []
+            data_list = self.get_mongodb_table(table_name)
+            for data in data_list:
+                productId = data['productId']
+                productSkcId = data['productSkcId']
+                warehouseRegion1List = data['productSemiManaged']['productShipment']['freightTemplate']['warehouseRegion1List']
+                if warehouseRegion1List:
+                    chineseName = warehouseRegion1List[0]['chineseName']
+                else:
+                    chineseName = None
+                for item in data['productSkuSummaries']:
+                    new_data = {
+                        'productId': productId,  # 'SPU ID'
+                        'productSkcId': productSkcId,  # 'SKC ID'
+                        'productSkuId': item['productSkuId'],  # 'SKU ID'
+                        'productSkuSpecList': json.dumps(item['productSkuSpecList']),  # '商品规格'
+                        'productSkuShippingMode': item['productSkuSaleExtAttr']['productSkuShippingMode'],
+                        # '发货模式(1:卖家自发货,2：合作对接仓发货)'
+                        'skuStockQuantity': item['productSkuSemiManagedStock']['skuStockQuantity'],  # '库存'
+                        'existShippingShelfRoute': item['productSkuSemiManagedStock']['existShippingShelfRoute'],
+                        # '是否展示库存标(true默认:展示)'
+                        'chineseName': chineseName,  # '运费模版发货地'
+                        'numberOfPieces': '单品数量：' + str(item['productSkuMultiPack']['numberOfPieces']) + '件',
+                        # 'SKU分类(默认:单品数量：1件)'
+                        'supplierPrice': item['siteSupplierPrices'][0]['supplierPrice'] / 100,  # '申报价格(CNY)'
+                        'productSkuVolume': json.dumps(item['productSkuWhExtAttr']['productSkuVolume']),  # '体积
+                        'productSkuWeight': json.dumps(item['productSkuWhExtAttr']['productSkuWeight']),  # '重量'
+                        'extCode': item['extCode'],  # 'SKU货号'
+                        'currencyType': item['currencyType'],  # 'currencyType'
+                        'thumbUrl': item['thumbUrl'],  # 'thumbUrl'
+                    }
+                    product_details_list.append(new_data)
+            return product_details_list
+        except Exception as e:
+            print(e)
+            pass
 
     def main(self):
         pass

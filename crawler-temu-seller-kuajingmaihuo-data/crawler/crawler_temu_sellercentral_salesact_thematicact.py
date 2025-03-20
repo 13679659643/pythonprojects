@@ -4,6 +4,9 @@
 # @Email   : 1370391119@qq.com
 # @File    : 
 # @Software:
+import random
+import time
+
 import requests
 from loguru import logger
 from base.crawler_base import CrawlerBase, RetryDecorator
@@ -48,7 +51,7 @@ class CrawlerTemuCentralSalesActShort(CrawlerBase):
 
         json_data = {
             'pageNo': pageNo,
-            'pageSize': 40,
+            'pageSize': 50,
         }
 
         response = requests.post(
@@ -77,10 +80,11 @@ class CrawlerTemuCentralSalesActShort(CrawlerBase):
             total = ret_data['result']['total']
             data_list = ret_data['result']['productList']
             result = CrawlerBase().add_fields(data_list, 'mallId', self.mallId, 'mallName', self.mallName)
-            page_total_ct = (total - 1) // 40 + 1
+            page_total_ct = (total - 1) // 50 + 1
             self.data_list.extend(result)
             has_more = page_ct < page_total_ct
             page_ct += 1
+            time.sleep(random.choice([1, 1.5, 2]))  # 可选：添加延迟避免频繁请求
 
     @RetryDecorator.retry_decorator()
     def run(self, account: str, password: str):
@@ -95,13 +99,14 @@ class CrawlerTemuCentralSalesActShort(CrawlerBase):
         UserInfo = self.userInfo()
         mall_info_list = CrawlerBase().mallId(UserInfo)
         for userinfo in mall_info_list:
+            self.data_list.clear()  # 清空列表 list
             self.mallId = str(userinfo['mallId'])
             self.mallName = userinfo['mallName']
             self.fetch_all_pages()
             self.mongo_ob.bulk_save_data(self.data_list, mg_thematicact_field_list, self.table_ob)
             logger.info(
                 f'temu-跨境卖家中心-店铺营销-营销活动-专题活动 {account} {self.mallName} {len(self.data_list)} 存入mongo完成')
-            self.data_list.clear()  # 清空列表 list
+
 
     def main(self):
         user_infos = self.tidb.get_user_info('TEMU')

@@ -11,8 +11,9 @@ import requests
 from loguru import logger
 from base.crawler_base import CrawlerBase, RetryDecorator
 from crawler.crawler_temu_sellercentral_illegalinfo_detail import CrawlerTemuCentralIllegaliDetail
-from db_model import ods_cd_sl_temu_seller_illegalidata_i_d_db_table, ods_cd_sl_temu_seller_illegalidata_i_d_field_list
-from settings import illegalidata
+from db_model import ods_cd_sl_temu_seller_illegalidata_i_d_db_table, ods_cd_sl_temu_seller_illegalidata_i_d_field_list, \
+    truncate_illegalidata, ods_cd_sl_temu_seller_illegalidetail_i_d_db_table
+from settings import illegalidata, domain_url_us, domain_url_list
 from login.temu_login import AuthTemuLogin
 
 
@@ -23,6 +24,8 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
         self.seller_temp_cookies = {}
         self.mallId = ''
         self.mallName = ''
+        self.domain_url = ''
+        self.violationAppealSn_list = []
 
     @RetryDecorator.retry(max_attempts=3)
     def get_listillegalidata(self, pageNo: int = 1):
@@ -36,9 +39,9 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
             'cache-control': 'no-cache',
             'content-type': 'application/json;charset=UTF-8',
             'mallid': self.mallId,  # ZHU HE SHOP: 634418216118770
-            'origin': 'https://agentseller.temu.com',
+            # 'origin': 'https://agentseller-us.temu.com',
             'pragma': 'no-cache',
-            'referer': 'https://agentseller.temu.com/mmsos/mall-appeal.html?targetType=1',
+            # 'referer': 'https://agentseller.temu.com/mmsos/mall-appeal.html?targetType=1',
             'sec-ch-ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
@@ -46,7 +49,7 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'x-document-referer': 'https://agentseller.temu.com/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html%3FtargetType%3D1',
+            # 'x-document-referer': 'https://agentseller.temu.com/main/authentication?redirectUrl=https%3A%2F%2Fagentseller.temu.com%2Fmmsos%2Fmall-appeal.html%3FtargetType%3D1',
         }
 
         json_data = {
@@ -56,7 +59,7 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
         }
 
         response = requests.post(
-            'https://agentseller.temu.com/reaper/violation/appeal/queryMallAppeals',
+            f'{self.domain_url}/reaper/violation/appeal/queryMallAppeals',
             cookies=self.seller_temp_cookies,
             headers=headers,
             json=json_data,
@@ -115,9 +118,35 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
                 "username": account,
                 "mallId": self.mallId,
                 "mallName": self.mallName,
+                "domain_url": self.domain_url,
             }
+            self.violationAppealSn_list.append(item['violationAppealSn'])
             self.data_list.append(row_dict)
 
+    def delete_violation_detail(self, violationAppealSn_list: list):
+        """
+        删除数据库中违规详情中，在页面上已删除的违规编码数据
+        """
+        detail_sql = f"""
+                       SELECT violationAppealSn FROM {ods_cd_sl_temu_seller_illegalidetail_i_d_db_table}
+                       """
+        # 列表套字典
+        detail_list = self.tidb.query_list(detail_sql)
+        # 将列表 转换为集合提高查询效率
+        violationAppealSn_list_set = set(violationAppealSn_list)
+        # 筛选出 在详情中violationAppealSn 却不在主页面中的元素
+        result = [
+            item['violationAppealSn'] for item in detail_list
+            if ('violationAppealSn' in item
+                and item['violationAppealSn'] not in violationAppealSn_list_set)
+        ]
+        if result:
+            placeholders = ', '.join(['%s'] * len(result))
+            d_sql = f"DELETE FROM {ods_cd_sl_temu_seller_illegalidetail_i_d_db_table} WHERE violationAppealSn IN ({placeholders})"
+            self.tidb.commit_sql(d_sql % tuple(result))
+            logger.info(f'temu-跨境卖家中心-店铺管理-违规信息详情 删除  {len(result)} 条数据 {len(set(result))}条违规编码: {set(result)}')
+        else:
+            print("No items to delete.")
     @RetryDecorator.retry_decorator()
     def run(self, account: str, password: str):
         """
@@ -137,24 +166,34 @@ class CrawlerTemuCentralIllegaliData(CrawlerBase):
         for userinfo in mall_info_list:
             self.mallId = str(userinfo['mallId'])
             self.mallName = userinfo['mallName']
-            verify_code = self.get_code(self.cookies)
-            self.seller_temp_cookies = self.loginByCode(verify_code)
-            self.fetch_all_pages(account)
-            self.save_to_tidb(ods_cd_sl_temu_seller_illegalidata_i_d_db_table,
-                              ods_cd_sl_temu_seller_illegalidata_i_d_field_list, self.data_list)
-            logger.info(
-                f'temu-跨境卖家中心-店铺管理-违规信息 {account} {self.mallName} {len(self.data_list)} 采集完成')
-            self.data_list.clear()  # 清空列表 list
-            violationdetail = CrawlerTemuCentralIllegaliDetail(self.seller_temp_cookies, self.mallId, self.mallName)
-            violationdetail.main()
+            for domain_url in domain_url_list:
+                self.data_list.clear()  # 清空列表 list
+                # self.violationAppealSn_list.clear()  # 清空列表 list
+                self.domain_url = domain_url
+                verify_code = self.get_code(self.cookies, self.domain_url)
+                time.sleep(1)
+                self.seller_temp_cookies = self.loginByCode(verify_code, self.domain_url)
+                self.fetch_all_pages(account)
+                if not self.data_list:
+                    continue
+
+                self.save_to_tidb(ods_cd_sl_temu_seller_illegalidata_i_d_db_table,
+                                  ods_cd_sl_temu_seller_illegalidata_i_d_field_list, self.data_list)
+                logger.info(
+                    f'temu-跨境卖家中心-店铺管理-违规信息 {account} {self.mallName} {len(self.data_list)} 采集完成 {self.domain_url}')
+                violationdetail = CrawlerTemuCentralIllegaliDetail(self.seller_temp_cookies, self.mallId, self.mallName, self.domain_url)
+                violationdetail.main()
 
 
     def main(self):
+        self.tidb.commit_sql(truncate_illegalidata)
         user_infos = self.tidb.get_user_info('TEMU')
         for temu_info in user_infos:
             account = temu_info['account']
             password = temu_info['password']
             self.run(account, password)
+        self.delete_violation_detail(self.violationAppealSn_list)
+
 
 
 

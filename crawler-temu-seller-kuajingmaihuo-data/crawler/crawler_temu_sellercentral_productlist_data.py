@@ -4,6 +4,8 @@
 # @Email   : 1370391119@qq.com
 # @File    : 
 # @Software:
+import random
+import time
 
 import requests
 from loguru import logger
@@ -74,17 +76,18 @@ class CrawlerTemuCentralProductList(CrawlerBase):
         while has_more:
             ret_data = self.get_productlist(page_ct)
             try:
-                if ret_data['result']['pageItems'] is None:
+                if not ret_data['result']['pageItems']:
                     break
-            except Exception as e:
+            except KeyError:
                 logger.info(ret_data)
-                pass
+
             total = ret_data['result']['total']
             data_list = ret_data['result']['pageItems']
             page_total_ct = (total - 1) // 50 + 1
             self.data_list.extend(data_list)
             has_more = page_ct < page_total_ct
             page_ct += 1
+            time.sleep(random.choice([0.5, 0.8]))
 
     @RetryDecorator.retry_decorator()
     def run(self, account: str, password: str):
@@ -99,6 +102,7 @@ class CrawlerTemuCentralProductList(CrawlerBase):
         UserInfo = self.userInfo()
         mall_info_list = CrawlerBase().mallId(UserInfo)
         for userinfo in mall_info_list:
+            self.data_list.clear()  # 清空列表 list
             self.mallId = str(userinfo['mallId'])
             self.mallName = userinfo['mallName']
             self.fetch_all_pages()

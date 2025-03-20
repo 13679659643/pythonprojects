@@ -1,0 +1,7 @@
+DB:
+  TIDB_CONFIG:
+    host: 192.168.0.200
+    port: 4000
+    username: root
+    password: DoocnProTidb200.
+

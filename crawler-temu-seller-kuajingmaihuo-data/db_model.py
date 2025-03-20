@@ -22,8 +22,11 @@ ods_cd_sl_temu_seller_illegalidata_i_d_field_list = [
     'appealProgress',  # 0、待申述 1、待完善资料 2、平台处理中 3、处理完成 4、超时关闭申述
     'username',
     'mallId',
-    'mallName'
+    'mallName',
+    'domain_url'
 ]
+
+truncate_illegalidata = f'truncate table {ods_cd_sl_temu_seller_illegalidata_i_d_db_table}'
 
 # temu-跨境卖家中心-店铺管理-违规信息详情
 
@@ -180,4 +183,69 @@ ods_cd_sl_temu_seller_orderlist_i_d_field_list = [
     'parentReceiptTimeStr',
     'mallName',
     'mallId',
+]
+
+
+# temu-跨境卖家中心-订单管理-订单列表-退货退款
+
+ods_cd_sl_temu_seller_return_refund_i_d_db_table = "ods_prod.ods_cd_sl_temu_seller_return_refund_i_d"
+
+ods_cd_sl_temu_seller_return_refund_i_d_field_list = [
+    'dt',
+    'parentAfterSalesSn',
+    'afterSalesTypeDesc',
+    'afterSalesTypeRemark',
+    'goodsName',
+    'goodsSpec',
+    'productSkuId',
+    'productSkcId',
+    'productSpuId',
+    'afterSalesSn',
+    'goodsThumbUrl',
+    'regionName1',
+    'afterSalesReasonDesc',
+    'buyerComment',
+    'originalBuyerComment',
+    'parentOrderSn',
+    'parentOrderShippingStatusDesc',
+    'applicantScene',
+    'operateNodeVOList',
+    'returnLogisticList',
+    'returnWareHouse',
+    'pickUpParentTypeDesc',
+    'parentAfterSalesStatusDesc',
+    'mallName',
+    'mallId',
+    'domain_url',
+]
+
+
+# temu-跨境卖家中心-订单管理-订单列表-退货退款详情信息
+
+ods_cd_sl_temu_seller_return_refund_detail_i_d_db_table = "ods_prod.ods_cd_sl_temu_seller_return_refund_detail_i_d"
+
+ods_cd_sl_temu_seller_return_refund_detail_i_d_field_list = [
+    'dt',
+    'parentAfterSalesSn',
+    'parentOrderSn',
+    'afterSalesSn',
+    'goodsThumbUrl',
+    'goodsName',
+    'goodsSpec',
+    'productSkuId',
+    'applyReturnGoodsNumber',
+    'returnGoodsNumber',
+    'rejectGoodsNumber',
+    'afterSalesReasonDesc',
+    'refundStatusDesc',
+    'rejectReasonDesc',
+    'applyRefundAmountStr',
+    'initRefundAmountStr',
+    'refundAmount',
+    'name',
+    'desc',
+    'timeStr',
+    'mallName',
+    'mallId',
+    'domain_url',
 ]

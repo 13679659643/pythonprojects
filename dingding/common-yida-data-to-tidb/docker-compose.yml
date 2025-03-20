@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  common-yida-data-to-tidb:
+    image: common-yida-data-to-tidb:v2.0.0
+    container_name: common-yida-data-to-tidb
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 8603:8000
+    environment:
+      - TZ:Asia/Shanghai
+      - PYTHONPATH:/app

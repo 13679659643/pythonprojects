@@ -270,15 +270,19 @@ class LogisticsDataFetcher_nextsls(BaseCrawler):
                                    "$..[?(@.comKey=='tms-csos-shipment-tracking')]..['dataSource'].['title','info']")
         except Exception as e:
             logger.warning(f"处理数据Error: {e}")
-        if self.logistics_provider == '东方环球物流':
-            result = BaseCrawlerView.extract_ges_view_info(view_id, self.logistics_provider, shipment_id, status_list)
-        elif self.logistics_provider == '澳得亚物流':
-            result = BaseCrawlerView.extract_auasian_view_info(view_id, self.logistics_provider, shipment_id,
-                                                               status_list)
-        elif self.logistics_provider == '美通物流':
-            result = BaseCrawlerView.extract_aaf_view_info(view_id, self.logistics_provider, shipment_id, status_list)
-        else:
-            logger.info(f'详情页面数据处理错误')
+        try:
+            # if view_id == '672d7414eefed66cc02b9809' or view_id == '675c2ceceefed63f8d590bf6':
+            if self.logistics_provider == '东方环球物流':
+                result = BaseCrawlerView.extract_ges_view_info(view_id, self.logistics_provider, shipment_id, status_list)
+            elif self.logistics_provider == '澳得亚物流':
+                result = BaseCrawlerView.extract_auasian_view_info(view_id, self.logistics_provider, shipment_id,
+                                                                   status_list)
+            elif self.logistics_provider == '美通物流':
+                result = BaseCrawlerView.extract_aaf_view_info(view_id, self.logistics_provider, shipment_id, status_list)
+            else:
+                logger.info(f'详情页面数据处理错误')
+        except Exception as e:
+            logger.warning(f"处理数据Error: {(view_id, self.logistics_provider, shipment_id, status_list)}")
         return result
 
     def process_view_from_queue(self):

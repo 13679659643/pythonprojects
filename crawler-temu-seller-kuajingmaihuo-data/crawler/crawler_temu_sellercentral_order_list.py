@@ -14,7 +14,7 @@ from data_pipeline.mongo_tidb_transfer_orderlist import MongoTidbTransferOrderLi
 from digiCore.db.tidb.core import TiDBDao
 
 from db_model import ods_cd_sl_temu_seller_orderlist_i_d_db_table, ods_cd_sl_temu_seller_orderlist_i_d_field_list
-from settings import db_name, mg_orderlist_field_list, orderlist_table_name
+from settings import db_name, mg_orderlist_field_list, orderlist_table_name, domain_url_list
 from login.temu_login import AuthTemuLogin
 
 
@@ -30,6 +30,8 @@ class CrawlerTemuCentralOrderList(CrawlerBase):
         self.now_date = datetime.now()
         self.startDate = (self.now_date - timedelta(days=31)).strftime('%Y-%m-%d 00:00:00')
         self.endDate = self.now_date.strftime('%Y-%m-%d 23:59:59')
+        self.domain_url = ''
+
 
     @RetryDecorator.retry(max_attempts=3)
     def get_productlist(self, pageNo: int = 1):
@@ -71,7 +73,7 @@ class CrawlerTemuCentralOrderList(CrawlerBase):
         }
 
         response = requests.post(
-            'https://agentseller.temu.com/kirogi/bg/mms/recentOrderList',
+            f'{self.domain_url}/kirogi/bg/mms/recentOrderList',
             cookies=self.seller_temp_cookies,
             headers=headers,
             json=json_data,
@@ -104,6 +106,7 @@ class CrawlerTemuCentralOrderList(CrawlerBase):
             self.order_list.extend(order_list)
             has_more = page_ct < page_total_ct
             page_ct += 1
+            time.sleep(random.choice([0.5, 1]))  # 可选：添加延迟避免频繁请求
 
     @RetryDecorator.retry_decorator()
     def run(self, account: str, password: str):
@@ -122,13 +125,17 @@ class CrawlerTemuCentralOrderList(CrawlerBase):
         for userinfo in mall_info_list:
             self.mallId = str(userinfo['mallId'])
             self.mallName = userinfo['mallName']
-            verify_code = self.get_code(self.cookies)
-            self.seller_temp_cookies = self.loginByCode(verify_code)
-            self.order_list.clear()  # 清空列表 list 放在此处避免重试时累计值
-            self.fetch_all_pages()
-            self.mongo_ob.bulk_save_data(self.order_list, mg_orderlist_field_list, self.table_ob)
-            logger.info(
-                f'temu-跨境卖家中心-订单管理-订单列表-买家履约订单 {account} {self.mallName} {len(self.order_list)} 存入mongo完成')
+            for domain_url in domain_url_list:
+                self.order_list.clear()  # 清空列表 list 放在此处避免重试时累计值
+                self.domain_url = domain_url
+                verify_code = self.get_code(self.cookies, self.domain_url)
+                self.seller_temp_cookies = self.loginByCode(verify_code, self.domain_url)
+                self.fetch_all_pages()
+                if not self.order_list:
+                    continue
+                self.mongo_ob.bulk_save_data(self.order_list, mg_orderlist_field_list, self.table_ob)
+                logger.info(
+                    f'temu-跨境卖家中心-订单管理-订单列表-买家履约订单 {account} {self.mallName} {len(self.order_list)} 存入mongo完成 {self.domain_url}')
 
 
     def main(self):

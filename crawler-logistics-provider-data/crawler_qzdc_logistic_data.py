@@ -178,7 +178,7 @@ class CrawlerZtLogisticData(BaseCrawler):
             response = self.session.get(track_url, params=params, verify=False)
             html_tree = response.text
             tree = html.fromstring(html_tree)
-            ul = tree.xpath("//div[@id='orderTracks']//ul/li")
+            ul = tree.xpath("//div[@id='orderTracks']/div[@class='layui-colla-item'][1]//ul/li")
             track_list = []
             for li in ul[::-1]:
                 item = {}
